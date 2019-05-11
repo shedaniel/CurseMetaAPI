@@ -29,6 +29,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -237,9 +239,11 @@ public class CurseMetaAPI {
     }
     
     public static class Addon {
+        private static SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
         public int id;
         public String name;
         public List<AddonAuthor> authors;
+        public List<AddonAttachment> attachments;
         public String websiteUrl;
         public int gameId;
         public String summary;
@@ -275,6 +279,28 @@ public class CurseMetaAPI {
         public String dateReleased;
         public boolean isAvailable;
         public String categoryList;
+        
+        public Date getDateCreated() throws ParseException {
+            return format.parse(dateCreated + "Z");
+        }
+        
+        public Date getDateModified() throws ParseException {
+            return format.parse(dateModified + "Z");
+        }
+        
+        public Date getDateReleased() throws ParseException {
+            return format.parse(dateReleased + "Z");
+        }
+        
+        public static class AddonAttachment {
+            public int id;
+            @SerializedName("projectID") public int projectId;
+            public String description;
+            public boolean isDefault;
+            public String thumbnailUrl;
+            @SerializedName("title") public String attachmentName;
+            public String url;
+        }
         
         public static class AddonAuthor {
             public String name;
