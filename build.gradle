@@ -19,7 +19,7 @@ plugins {
 }
 
 group 'me.shedaniel.cursemetaapi'
-version '0.1.0'
+version '0.1.1'
 
 sourceCompatibility = 1.8
 

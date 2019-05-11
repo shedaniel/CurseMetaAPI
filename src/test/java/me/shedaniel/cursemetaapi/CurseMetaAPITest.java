@@ -31,7 +31,8 @@ public class CurseMetaAPITest {
         List<CurseMetaAPI.Addon> addons = CurseMetaAPI.getAddons(310111, 32274, 311812);
         for(CurseMetaAPI.Addon addon : addons)
             System.out.println(addon.name);
-        CurseMetaAPI.AddonFile addonFile = CurseMetaAPI.getAddonFile(32274, 2709306);
-        System.out.println(addonFile.fileNameOnDisk);
+        List<CurseMetaAPI.AddonFile> addonFiles = CurseMetaAPI.getAddonFiles(new int[]{32274}, new int[]{2709306});
+        for(CurseMetaAPI.AddonFile addonFile : addonFiles)
+            System.out.println(addonFile.fileNameOnDisk);
     }
 }

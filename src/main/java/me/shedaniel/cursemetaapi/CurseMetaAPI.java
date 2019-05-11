@@ -19,6 +19,7 @@ package me.shedaniel.cursemetaapi;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 
 import java.io.BufferedReader;
@@ -97,6 +98,38 @@ public class CurseMetaAPI {
             e.printStackTrace();
         }
         return null;
+    }
+    
+    /**
+     * @param addons  the addons id
+     * @param fileIds the files id
+     * @return the list of files, return empty list if error
+     * @throws NullPointerException if addons' and fileIds' size is the not same
+     */
+    public static List<AddonFile> getAddonFiles(int[] addons, int fileIds[]) {
+        try {
+            if (addons.length != fileIds.length)
+                throw new NullPointerException();
+            String args = addons.length > 0 ? "?" : "";
+            for(int i = 0; i < addons.length; i++) {
+                if (args.charAt(args.length() - 1) != '?')
+                    args += '&';
+                args += "addon=" + addons[i] + "&file=" + fileIds[i];
+            }
+            List<AddonFile> addonFiles = new ArrayList<>();
+            JsonObject object = GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(new URL(API + "/api/v3/direct/addon/files" + args))), JsonObject.class);
+            object.entrySet().forEach(entry -> {
+                try {
+                    addonFiles.add(GSON.fromJson(entry.getValue().getAsJsonArray().get(0), AddonFile.class));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+            return addonFiles;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return Collections.emptyList();
     }
     
     /**
