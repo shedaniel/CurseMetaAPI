@@ -28,9 +28,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author shedaniel
@@ -130,6 +128,38 @@ public class CurseMetaAPI {
             e.printStackTrace();
         }
         return Collections.emptyList();
+    }
+    
+    /**
+     * @param addons  the addons id
+     * @param fileIds the files id
+     * @return the map of addon id and its file, return empty map if error
+     * @throws NullPointerException if addons' and fileIds' size is the not same
+     */
+    public static Map<String, AddonFile> getAddonFilesMap(int[] addons, int fileIds[]) {
+        try {
+            if (addons.length != fileIds.length)
+                throw new NullPointerException();
+            String args = addons.length > 0 ? "?" : "";
+            for(int i = 0; i < addons.length; i++) {
+                if (args.charAt(args.length() - 1) != '?')
+                    args += '&';
+                args += "addon=" + addons[i] + "&file=" + fileIds[i];
+            }
+            Map<String, AddonFile> addonFiles = new LinkedHashMap<>();
+            JsonObject object = GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(new URL(API + "/api/v3/direct/addon/files" + args))), JsonObject.class);
+            object.entrySet().forEach(entry -> {
+                try {
+                    addonFiles.put(entry.getKey(), GSON.fromJson(entry.getValue().getAsJsonArray().get(0), AddonFile.class));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+            return addonFiles;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return Collections.emptyMap();
     }
     
     /**
