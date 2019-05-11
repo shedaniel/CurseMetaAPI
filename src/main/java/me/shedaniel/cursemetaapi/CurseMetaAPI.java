@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.*;
 
 /**
@@ -160,6 +161,37 @@ public class CurseMetaAPI {
             e.printStackTrace();
         }
         return Collections.emptyMap();
+    }
+    
+    static List<Addon> search(MetaSearch metaSearch) {
+        try {
+            String args = "";
+            args += "&index=" + metaSearch.getPageIndex();
+            args += "&pageSize=" + metaSearch.getPageSize();
+            args += "&sort=" + URLEncoder.encode(metaSearch.getSort().getName(), "UTF-8");
+            args += "&isSortDescending=" + metaSearch.getSortDescending();
+            if (metaSearch.getSectionId() != null)
+                args += "&sectionId=" + metaSearch.getSectionId();
+            if (metaSearch.getCategoryId() != null)
+                args += "&categoryId=" + metaSearch.getCategoryId();
+            if (metaSearch.getGameVersion() != null)
+                args += "&gameVersion=" + URLEncoder.encode(metaSearch.getGameVersion(), "UTF-8");
+            if (metaSearch.getSearchFilter() != null)
+                args += "&searchFilter=" + URLEncoder.encode(metaSearch.getSearchFilter(), "UTF-8");
+            JsonArray array = GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(new URL(API + "api/v3/direct/addon/search?gameId=" + metaSearch.getGameId() + args))), JsonArray.class);
+            List<Addon> addons = new ArrayList<>();
+            array.forEach(jsonElement -> {
+                try {
+                    addons.add(GSON.fromJson(jsonElement, Addon.class));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+            return addons;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return Collections.emptyList();
     }
     
     /**

@@ -34,5 +34,9 @@ public class CurseMetaAPITest {
         List<CurseMetaAPI.AddonFile> addonFiles = CurseMetaAPI.getAddonFiles(new int[]{32274}, new int[]{2709306});
         for(CurseMetaAPI.AddonFile addonFile : addonFiles)
             System.out.println(addonFile.fileNameOnDisk);
+        // 432 is Minecraft game id, 6 is mods
+        List<CurseMetaAPI.Addon> rei = MetaSearch.create(432).setSearchFilter("Just Enough").setSortingMethod(MetaSearch.SortMethod.NAME).setSectionId(6).setPageSize(10).search();
+        for(CurseMetaAPI.Addon addon : rei)
+            System.out.println(addon.name);
     }
 }
