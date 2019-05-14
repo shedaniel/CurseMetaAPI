@@ -38,5 +38,7 @@ public class CurseMetaAPITest {
         List<CurseMetaAPI.Addon> rei = MetaSearch.create(432).setSearchFilter("Just Enough").setSortingMethod(MetaSearch.SortMethod.NAME).setSectionId(6).setPageSize(10).search();
         for(CurseMetaAPI.Addon addon : rei)
             System.out.println(addon.name);
+        for(CurseMetaAPI.AddonFile addonFile : CurseMetaAPI.getAddonFiles(310111))
+            System.out.println(addonFile.fileNameOnDisk);
     }
 }

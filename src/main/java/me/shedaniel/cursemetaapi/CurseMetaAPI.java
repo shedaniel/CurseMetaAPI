@@ -22,13 +22,12 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -102,6 +101,23 @@ public class CurseMetaAPI {
     }
     
     /**
+     * Gets the addon file changelog.
+     *
+     * @param addon  the addon id
+     * @param fileId the file id
+     * @return the changelog in html, returns null if error
+     */
+    public static String getAddonFileChangelog(int addon, int fileId) {
+        try {
+            return InternetUtils.getSite(new URL(API + "/api/v3/direct/addon/" + addon + "/file/" + fileId + "/changelog"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    
+    /**
      * @param addons  the addons id
      * @param fileIds the files id
      * @return the list of files, return empty list if error
@@ -128,6 +144,25 @@ public class CurseMetaAPI {
             });
             return addonFiles;
         } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return Collections.emptyList();
+    }
+    
+    public static List<AddonFile> getAddonFiles(int addonId) {
+        try {
+            JsonArray array = GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(new URL(API + "/api/v3/direct/addon/" + addonId + "/files"))), JsonArray.class);
+            List<AddonFile> files = new ArrayList<>();
+            array.forEach(jsonElement -> {
+                if (jsonElement.isJsonObject())
+                    try {
+                        files.add(GSON.fromJson(jsonElement, AddonFile.class));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+            });
+            return files;
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return Collections.emptyList();
@@ -234,6 +269,12 @@ public class CurseMetaAPI {
             in.close();
             stream.close();
             return response.toString();
+        }
+        
+        public static void downloadToFile(URL url, File file) throws IOException {
+            ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
         }
         
     }
