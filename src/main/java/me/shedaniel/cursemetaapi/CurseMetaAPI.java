@@ -19,7 +19,7 @@ package me.shedaniel.cursemetaapi;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.google.gson.JsonElement;
 import com.google.gson.annotations.SerializedName;
 
 import java.io.*;
@@ -30,14 +30,17 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 
 /**
  * @author shedaniel
  */
 public class CurseMetaAPI {
     
-    public static final String API = "https://staging_cursemeta.dries007.net/";
+    public static final String API = "https://addons-ecs.forgesvc.net";
     public static final Gson GSON = new GsonBuilder().create();
     
     /**
@@ -48,8 +51,11 @@ public class CurseMetaAPI {
      */
     public static Addon getAddon(int id) {
         try {
-            return getAddons(id).get(0);
+            URL url = new URL(API + "/api/v2/addon/" + id);
+            Addon object = GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(url)), Addon.class);
+            return object;
         } catch (Exception e) {
+            e.printStackTrace();
         }
         return null;
     }
@@ -60,28 +66,15 @@ public class CurseMetaAPI {
      * @throws NullPointerException if > 50 addons
      */
     public static List<Addon> getAddons(int... ids) {
-        if (ids.length > 50)
-            throw new NullPointerException("Too many addons! Please split them!");
         try {
-            String args = ids.length > 0 ? "?" : "";
-            for(int i = 0; i < ids.length; i++) {
-                if (args.charAt(args.length() - 1) != '?')
-                    args += '&';
-                args += "id=" + ids[i];
-            }
-            URL url = new URL(API + "/api/v3/direct/addon" + args);
-            JsonArray object = GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(url)), JsonArray.class);
             List<Addon> addons = new ArrayList<>();
-            object.forEach(jsonElement -> {
-                try {
-                    addons.add(GSON.fromJson(jsonElement, Addon.class));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+            for(int id : ids) {
+                Addon addon = getAddon(id);
+                if (addon != null)
+                    addons.add(addon);
+            }
             return addons;
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return Collections.emptyList();
     }
@@ -93,7 +86,7 @@ public class CurseMetaAPI {
      */
     public static AddonFile getAddonFile(int addon, int fileId) {
         try {
-            return GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(new URL(API + "/api/v3/direct/addon/" + addon + "/file/" + fileId))), AddonFile.class);
+            return GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(new URL(API + "/api/v2/addon/" + addon + "/file/" + fileId))), AddonFile.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -109,13 +102,12 @@ public class CurseMetaAPI {
      */
     public static String getAddonFileChangelog(int addon, int fileId) {
         try {
-            return InternetUtils.getSite(new URL(API + "/api/v3/direct/addon/" + addon + "/file/" + fileId + "/changelog"));
+            return InternetUtils.getSite(new URL(API + "/api/v2/addon/" + addon + "/file/" + fileId + "/changelog"));
         } catch (IOException e) {
             e.printStackTrace();
         }
         return null;
     }
-    
     
     /**
      * @param addons  the addons id
@@ -125,24 +117,15 @@ public class CurseMetaAPI {
      */
     public static List<AddonFile> getAddonFiles(int[] addons, int fileIds[]) {
         try {
-            if (addons.length != fileIds.length)
-                throw new NullPointerException();
-            String args = addons.length > 0 ? "?" : "";
+            List<AddonFile> files = new ArrayList<>();
             for(int i = 0; i < addons.length; i++) {
-                if (args.charAt(args.length() - 1) != '?')
-                    args += '&';
-                args += "addon=" + addons[i] + "&file=" + fileIds[i];
+                int addon = addons[i];
+                int fileId = fileIds[i];
+                AddonFile file = getAddonFile(addon, fileId);
+                if (file != null)
+                    files.add(file);
             }
-            List<AddonFile> addonFiles = new ArrayList<>();
-            JsonObject object = GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(new URL(API + "/api/v3/direct/addon/files" + args))), JsonObject.class);
-            object.entrySet().forEach(entry -> {
-                try {
-                    addonFiles.add(GSON.fromJson(entry.getValue().getAsJsonArray().get(0), AddonFile.class));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-            return addonFiles;
+            return files;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -151,7 +134,7 @@ public class CurseMetaAPI {
     
     public static List<AddonFile> getAddonFiles(int addonId) {
         try {
-            JsonArray array = GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(new URL(API + "/api/v3/direct/addon/" + addonId + "/files"))), JsonArray.class);
+            JsonArray array = GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(new URL(API + "/api/v2/addon/" + addonId + "/files"))), JsonArray.class);
             List<AddonFile> files = new ArrayList<>();
             array.forEach(jsonElement -> {
                 if (jsonElement.isJsonObject())
@@ -166,38 +149,6 @@ public class CurseMetaAPI {
             e.printStackTrace();
         }
         return Collections.emptyList();
-    }
-    
-    /**
-     * @param addons  the addons id
-     * @param fileIds the files id
-     * @return the map of addon id and its file, return empty map if error
-     * @throws NullPointerException if addons' and fileIds' size is the not same
-     */
-    public static Map<String, AddonFile> getAddonFilesMap(int[] addons, int fileIds[]) {
-        try {
-            if (addons.length != fileIds.length)
-                throw new NullPointerException();
-            String args = addons.length > 0 ? "?" : "";
-            for(int i = 0; i < addons.length; i++) {
-                if (args.charAt(args.length() - 1) != '?')
-                    args += '&';
-                args += "addon=" + addons[i] + "&file=" + fileIds[i];
-            }
-            Map<String, AddonFile> addonFiles = new LinkedHashMap<>();
-            JsonObject object = GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(new URL(API + "/api/v3/direct/addon/files" + args))), JsonObject.class);
-            object.entrySet().forEach(entry -> {
-                try {
-                    addonFiles.put(entry.getKey(), GSON.fromJson(entry.getValue().getAsJsonArray().get(0), AddonFile.class));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-            return addonFiles;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return Collections.emptyMap();
     }
     
     static List<Addon> search(MetaSearch metaSearch) {
@@ -215,7 +166,7 @@ public class CurseMetaAPI {
                 args += "&gameVersion=" + URLEncoder.encode(metaSearch.getGameVersion(), "UTF-8");
             if (metaSearch.getSearchFilter() != null)
                 args += "&searchFilter=" + URLEncoder.encode(metaSearch.getSearchFilter(), "UTF-8");
-            JsonArray array = GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(new URL(API + "api/v3/direct/addon/search?gameId=" + metaSearch.getGameId() + args))), JsonArray.class);
+            JsonArray array = GSON.fromJson(new InputStreamReader(InternetUtils.getSiteStream(new URL(API + "/api/v2/addon/search?gameId=" + metaSearch.getGameId() + args))), JsonArray.class);
             List<Addon> addons = new ArrayList<>();
             array.forEach(jsonElement -> {
                 try {
@@ -237,7 +188,7 @@ public class CurseMetaAPI {
      */
     public static String getAddonDescription(int id) {
         try {
-            return InternetUtils.getSite(new URL(API + "/api/v3/direct/addon/" + id + "/description"));
+            return InternetUtils.getSite(new URL(API + "/api/v2/addon/" + id + "/description"));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -289,37 +240,26 @@ public class CurseMetaAPI {
         public int gameId;
         public String summary;
         @SerializedName("defaultFileId") public int latestReleaseFileId;
-        public int commentCount;
-        public float downloadCount;
-        public int rating;
-        public int installCount;
+        public double downloadCount;
+        public List<AddonLatestFiles> latestFiles;
         public List<AddonCategory> categories;
-        public String primaryAuthorName;
-        public String externalUrl;
         public int status;
-        public int stage;
-        public String donationUrl;
-        public String primaryCategoryName;
-        public String primaryCategoryAvatarUrl;
-        public int likes;
-        public int packageType;
-        public String avatarUrl;
+        public int primaryCategoryId;
+        public AddonCategorySection categorySection;
         public String slug;
-        public String clientUrl;
         public List<AddonGameVersionFiles> gameVersionLatestFiles;
-        public int isFeatured;
+        public boolean isFeatured;
         public float popularityScore;
         public int gamePopularityRank;
         public String primaryLanguage;
-        public String fullDescription;
+        public String gameSlug;
         public String gameName;
         public String portalName;
-        public String sectionName;
         public String dateModified;
         public String dateCreated;
         public String dateReleased;
         public boolean isAvailable;
-        public String categoryList;
+        @SerializedName("isExperiemental") public boolean isExperimental;
         
         public Date getDateCreated() throws ParseException {
             return format.parse(dateCreated + "Z");
@@ -335,37 +275,45 @@ public class CurseMetaAPI {
         
         public static class AddonAttachment {
             public int id;
-            @SerializedName("projectID") public int projectId;
+            public int projectId;
             public String description;
             public boolean isDefault;
             public String thumbnailUrl;
             @SerializedName("title") public String attachmentName;
             public String url;
+            public int status;
         }
         
         public static class AddonAuthor {
             public String name;
             public String url;
+            public int projectId;
+            public int id;
+            public int userId;
             public int twitchId;
         }
         
         public static class AddonCategory {
-            public int id;
+            public int categoryId;
             public String name;
             public String url;
             public String avatarUrl;
             public int parentId;
             public int rootId;
+            public int projectId;
+            public int avatarId;
+            public int gameId;
         }
         
         public static class AddonCategorySection {
-            @SerializedName("Id") public int id;
+            public int id;
             public int gameId;
             public String name;
             public int packageType;
             public String path;
             public String initialInclusionPattern;
             public String extraIncludePattern;
+            public int gameCategoryId;
         }
         
         public static class AddonGameVersionFiles {
@@ -374,12 +322,72 @@ public class CurseMetaAPI {
             public String projectFileName;
             public int fileType;
         }
+        
+        public static class AddonLatestFiles {
+            public int id;
+            public String displayName;
+            public String fileName;
+            public String fileDate;
+            public long fileLength;
+            public int releaseType;
+            public int fileStatus;
+            public String downloadUrl;
+            public boolean isAlternate;
+            public int alternateFileId;
+            public List<FileDependency> dependencies;
+            public boolean isAvailable;
+            public List<FileModules> modules;
+            public long packageFingerprint;
+            public List<String> gameVersion;
+            public List<SortableGameVersion> sortableGameVersion;
+            public JsonElement installMetadata;
+            public JsonElement changelog;
+            public boolean hasInstallScript;
+            public boolean isCompatibleWithClient;
+            public int categorySectionPackageType;
+            public int restrictProjectFileAccess;
+            public int projectStatus;
+            public int renderCacheId;
+            public JsonElement fileLegacyMappingId;
+            public int projectId;
+            public JsonElement parentProjectFileId;
+            public JsonElement parentFileLegacyMappingId;
+            public JsonElement fileTypeId;
+            public JsonElement exposeAsAlternative;
+            public long packageFingerprintId;
+            public String gameVersionDateReleased;
+            public int gameVersionMappingId;
+            public int gameVersionId;
+            public int gameId;
+            public boolean isServerPack;
+            public JsonElement serverPackFileId;
+            
+            public static class FileDependency {
+                public int id;
+                public int addonId;
+                public int type;
+                public int fileId;
+            }
+            
+            public static class FileModules {
+                @SerializedName("foldername") public String moduleName;
+                public long fingerprint;
+                public int type;
+            }
+            
+            public static class SortableGameVersion {
+                public String gameVersionPadded;
+                public String gameVersion;
+                public String gameVersionReleaseDate;
+                public String gameVersionName;
+            }
+        }
     }
     
     public static class AddonFile {
         @SerializedName("id") public int fileId;
+        public String displayName;
         public String fileName;
-        public String fileNameOnDisk;
         public String fileDate;
         public int fileLength;
         public int releaseType;
@@ -392,7 +400,9 @@ public class CurseMetaAPI {
         public List<FileModule> modules;
         public long packageFingerprint;
         public List<String> gameVersion;
-        public Object installMetadata;
+        public JsonElement installMetadata;
+        public JsonElement serverPackFileId;
+        public boolean hasInstallScript;
         
         public static class FileDependency {
             public int addonId;
@@ -401,7 +411,7 @@ public class CurseMetaAPI {
         
         public static class FileModule {
             public String folderName;
-            @SerializedName("fimgerprint") public long fingerprint;
+            public long fingerprint;
         }
     }
     
